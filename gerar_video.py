@@ -14,10 +14,10 @@ from google import genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 PEXELS_API_KEY = "COLE_SUA_CHAVE_PEXELS_AQUI"
 
-TEMA = "3 curiosidades impressionantes sobre o espaço"
-MODO_VISUAL = "ia"  # Opções: "pexels" (vídeos reais) ou "ia" (imagens geradas por IA)
-VOZ = "pt-BR-AntonioNeural"  # Outras opções: "pt-BR-FranciscaNeural", "pt-BR-ThalitaNeural"
-VELOCIDADE_VOZ = "+12%"  # "+0%" para normal, "+12%" para ritmo dinâmico de Reels
+TEMA = os.environ.get("TEMA", "3 curiosidades impressionantes sobre o espaço")
+MODO_VISUAL = os.environ.get("MODO_VISUAL", "ia")
+VOZ = os.environ.get("VOZ", "pt-BR-AntonioNeural")
+VELOCIDADE_VOZ = os.environ.get("VELOCIDADE_VOZ", "+12%")
 
 os.makedirs("temp", exist_ok=True)
 os.makedirs("saida", exist_ok=True)
