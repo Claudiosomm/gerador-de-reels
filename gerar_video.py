@@ -15,6 +15,7 @@ from google import genai
 # ==========================================
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
 TEMA = os.environ.get("TEMA", "3 curiosidades impressionantes sobre o espaço")
 MODO_VISUAL = os.environ.get("MODO_VISUAL", "ia")
@@ -40,7 +41,7 @@ def rodar_ffmpeg(cmd: list):
         raise RuntimeError("FFmpeg falhou (veja o log acima).")
 
 
-def baixar_arquivo(url: str, destino: str, headers: dict = None, tentativas: int = 3, timeout: int = 60):
+def baixar_arquivo(url: str, destino: str, headers: dict = None, tentativas: int = 3, timeout: int = 60, pausa: int = 4):
     """Baixa um arquivo verificando o status HTTP, com novas tentativas."""
     ultimo_erro = None
     for tentativa in range(1, tentativas + 1):
@@ -56,7 +57,7 @@ def baixar_arquivo(url: str, destino: str, headers: dict = None, tentativas: int
             ultimo_erro = e
             print(f"   Tentativa {tentativa}/{tentativas} falhou: {e}")
             if tentativa < tentativas:
-                time.sleep(4)
+                time.sleep(pausa)
     raise RuntimeError(f"Não foi possível baixar {url}: {ultimo_erro}")
 
 
@@ -77,7 +78,7 @@ def gerar_roteiro_e_cenas(tema: str) -> list:
     ]
     """
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=GEMINI_MODEL,
         contents=prompt,
     )
     texto = response.text.strip()
@@ -205,7 +206,10 @@ def gerar_cena_ia(prompt: str, indice: int, duracao: float) -> str:
     img_path = f"temp/img_{indice}.jpg"
     cortado = f"temp/cena_{indice}.mp4"
 
-    baixar_arquivo(url, img_path, tentativas=3, timeout=90)
+    # O nível anônimo do Pollinations limita a ~1 imagem a cada 15 s
+    if indice > 0:
+        time.sleep(16)
+    baixar_arquivo(url, img_path, tentativas=4, timeout=90, pausa=16)
 
     frames = int(duracao * 30)
     # Zoom suave (efeito Ken Burns) na imagem estática, já em 30 fps
