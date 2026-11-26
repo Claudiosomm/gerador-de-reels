@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Reels</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #181b24;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --border: #2a2f3d;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    h1 { font-size: 1.3rem; margin: 0 0 6px; }
+    p.sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 18px; }
+    label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: #d1d5db; }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #10131a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #10131a;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+    .links { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .links a { color: #818cf8; text-decoration: none; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Gerador de Reels</h1>
+    <p class="sub">Dispara a criação na nuvem pelo GitHub Actions.</p>
+
+    <label for="token">Token do GitHub (salvo só neste aparelho)</label>
+    <input id="token" type="password" placeholder="ghp_..." autocomplete="off" />
+
+    <label for="tema">Tema ou ideia do vídeo</label>
+    <textarea id="tema" placeholder="Ex.: 3 curiosidades impressionantes sobre o espaço"></textarea>
+
+    <label for="voz">Voz em português</label>
+    <select id="voz">
+      <option value="pt-BR-AntonioNeural">Antônio (Masculina)</option>
+      <option value="pt-BR-FranciscaNeural">Francisca (Feminina)</option>
+      <option value="pt-BR-ThalitaNeural">Thalita (Feminina jovem)</option>
+    </select>
+
+    <label for="velocidade">Ritmo da narração</label>
+    <select id="velocidade">
+      <option value="+12%">Dinâmico (+12%)</option>
+      <option value="+0%">Normal (+0%)</option>
+    </select>
+
+    <label for="modo">Estilo visual</label>
+    <select id="modo">
+      <option value="ia">Imagens por IA com zoom (grátis)</option>
+      <option value="pexels">Vídeos reais (exige chave Pexels)</option>
+    </select>
+
+    <button id="btnGerar" onclick="dispararWorkflow()">Gerar Vídeo</button>
+
+    <div id="status" class="status">Pronto para gerar.</div>
+    <div id="links" class="links"></div>
+  </div>
+
+  <script>
+    const DONO = "Claudiosvmm";
+    const REPO = "gerador-de-reais";
+    const WORKFLOW = "criar-reel.yml";
+
+    const tokenInput = document.getElementById("token");
+    const temaInput = document.getElementById("tema");
+    const vozInput = document.getElementById("voz");
+    const velInput = document.getElementById("velocidade");
+    const modoInput = document.getElementById("modo");
+    const statusBox = document.getElementById("status");
+    const linksBox = document.getElementById("links");
+
+    tokenInput.value = localStorage.getItem("gh_reel_token") || "";
+    tokenInput.addEventListener("input", () => {
+      localStorage.setItem("gh_reel_token", tokenInput.value.trim());
+    });
+
+    async function dispararWorkflow() {
+      const token = tokenInput.value.trim();
+      const tema = temaInput.value.trim();
+
+      if (!token) {
+        statusBox.textContent = "Cole um token do GitHub com permissão de Actions/Workflow.";
+        return;
+      }
+      if (!tema) {
+        statusBox.textContent = "Digite um tema ou ideia antes de gerar.";
+        return;
+      }
+
+      statusBox.textContent = "Enviando pedido para o GitHub Actions...";
+      linksBox.innerHTML = "";
+
+      try {
+        const resp = await fetch(
+          `https://api.github.com/repos/${DONO}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Accept": "application/vnd.github+json",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              ref: "principal",
+              inputs: {
+                tema: tema,
+                modo_visual: modoInput.value,
+                voz: vozInput.value,
+                velocidade_voz: velInput.value
+              }
+            })
+          }
+        );
+
+        if (resp.status === 204) {
+          statusBox.textContent =
+            "Pedido enviado! O vídeo está sendo montado na nuvem (~1 a 2 min).\n" +
+            "Quando terminar, ele ficará disponível na aba Ações ou em Lançamentos (Releases).";
+          linksBox.innerHTML = `
+            <a href="https://github.com/${DONO}/${REPO}/actions" target="_blank">Abrir aba Ações (progresso)</a>
+            <a href="https://github.com/${DONO}/${REPO}/releases" target="_blank">Abrir Lançamentos (baixar MP4)</a>
+          `;
+        } else {
+          const erro = await resp.text();
+          statusBox.textContent = `Não foi possível iniciar (${resp.status}): ${erro}`;
+        }
+      } catch (e) {
+        statusBox.textContent = "Erro de rede ao conectar com o GitHub.";
+      }
+    }
+  </script>
+</body>
+</html>
