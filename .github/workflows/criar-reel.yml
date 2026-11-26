@@ -1,0 +1,61 @@
+name: Criar Reel com IA
+
+on:
+  workflow_dispatch:
+    inputs:
+      tema:
+        description: "Tema ou roteiro do vídeo"
+        required: true
+        default: "3 curiosidades impressionantes sobre o espaço"
+      modo_visual:
+        description: "Modo visual (ia ou pexels)"
+        required: true
+        default: "ia"
+      voz:
+        description: "Voz em português (Edge-TTS)"
+        required: true
+        default: "pt-BR-AntonioNeural"
+      velocidade_voz:
+        description: "Velocidade da fala (ex: +0% ou +12%)"
+        required: true
+        default: "+12%"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  gerar-reel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar FFmpeg e bibliotecas Python
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install edge-tts requests google-genai
+
+      - name: Gerar vídeo
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          TEMA: ${{ inputs.tema }}
+          MODO_VISUAL: ${{ inputs.modo_visual }}
+          VOZ: ${{ inputs.voz }}
+          VELOCIDADE_VOZ: ${{ inputs.velocidade_voz }}
+        run: python gerar_video.py
+
+      - name: Enviar vídeo para Release do repositório
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "reel-${{ github.run_number }}"
+          name: "Reel #${{ github.run_number }}"
+          files: saida/reel_pronto.mp4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
